@@ -1,7 +1,3 @@
-"""
-FloodSense AI — FastAPI Backend
-Production entry point with CORS, lifespan model loading, and route registration.
-"""
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -29,14 +25,14 @@ model_service = ModelService()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load ML artifacts on startup, clean up on shutdown."""
-    logger.info("🌊 FloodSense AI starting up...")
+    logger.info(" FloodSense AI starting up...")
     model_service.load()
-    logger.info("✅ Models loaded and ready")
+    logger.info("Models loaded and ready")
     yield
-    logger.info("🛑 FloodSense AI shutting down")
+    logger.info(" FloodSense AI shutting down")
 
 
-# ── App ────────────────────────────────────────────────────────────────────────
+# App
 app = FastAPI(
     title="FloodSense AI API",
     description="NDMA Pakistan — AI Flood Early Warning System",
