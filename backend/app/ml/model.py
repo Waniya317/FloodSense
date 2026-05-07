@@ -1,7 +1,3 @@
-"""
-FloodSense AI - ML Training Pipeline
-XGBoost + LightGBM with SHAP explainability and full evaluation suite
-"""
 
 import numpy as np
 import pandas as pd
@@ -23,7 +19,7 @@ import lightgbm as lgb
 
 logger = logging.getLogger(__name__)
 
-# ─── Risk Level Mapping ───────────────────────────────────────────────────────
+#risk level mapping
 RISK_THRESHOLDS = {
     "Low":      (0.00, 0.25),
     "Medium":   (0.25, 0.50),
@@ -54,7 +50,7 @@ def probability_to_risk(prob: float) -> str:
     return "Critical"
 
 
-# ─── XGBoost Model ────────────────────────────────────────────────────────────
+# XGBoost Model
 def build_xgboost(
     scale_pos_weight: float = 3.0,
     n_estimators: int = 200,
@@ -80,7 +76,7 @@ def build_xgboost(
     )
 
 
-# ─── LightGBM Model ───────────────────────────────────────────────────────────
+#LightGBM Model
 def build_lightgbm(
     scale_pos_weight: float = 3.0,
     n_estimators: int = 200,
@@ -104,7 +100,7 @@ def build_lightgbm(
     )
 
 
-# ─── Ensemble Model ─────────────────────────────────────────────────────────
+# Ensemble Model
 class EnsembleModel:
     def __init__(self, m1, m2):
         self.m1 = m1
@@ -121,7 +117,7 @@ class EnsembleModel:
         return (proba >= threshold).astype(int)
 
 
-# ─── Training ─────────────────────────────────────────────────────────────────
+#Training
 def train_model(
     X_train: np.ndarray,
     y_train: np.ndarray,
@@ -130,10 +126,7 @@ def train_model(
     model_type: str = "xgboost",
     use_both_and_ensemble: bool = True,
 ) -> Tuple[Any, float]:
-    """
-    Train XGBoost and/or LightGBM.
-    Returns best model and optimal decision threshold.
-    """
+   
     flood_ratio = (y_train == 0).sum() / max((y_train == 1).sum(), 1)
     logger.info(f"Class ratio 0:1 = {flood_ratio:.1f}")
 
@@ -175,7 +168,6 @@ def train_model(
 
 
 def tune_threshold(model, X_val: np.ndarray, y_val: np.ndarray) -> float:
-    """Find decision threshold that maximizes F1 on validation set."""
     proba = model.predict_proba(X_val)[:, 1]
     best_f1 = 0
     best_thresh = 0.5
@@ -188,7 +180,7 @@ def tune_threshold(model, X_val: np.ndarray, y_val: np.ndarray) -> float:
     return float(best_thresh)
 
 
-# ─── Evaluation ───────────────────────────────────────────────────────────────
+# Evaluation
 def evaluate_model(
     model,
     X_test: np.ndarray,
@@ -196,7 +188,7 @@ def evaluate_model(
     threshold: float = 0.5,
     feature_names: Optional[list] = None,
 ) -> Dict[str, Any]:
-    """Comprehensive evaluation suite."""
+    
     proba = model.predict_proba(X_test)[:, 1]
     preds = (proba >= threshold).astype(int)
 
@@ -226,11 +218,10 @@ def evaluate_model(
     return metrics
 
 
-# ─── SHAP Explainability ──────────────────────────────────────────────────────
+# SHAP Explainability
 def build_explainer(model, X_train: np.ndarray, feature_names: list):
     """Build SHAP TreeExplainer for post-hoc explanations."""
     try:
-        # Use underlying model for ensemble
         base = getattr(model, "m1", model)
         explainer = shap.TreeExplainer(base)
         logger.info("SHAP TreeExplainer built successfully")
@@ -248,10 +239,7 @@ def explain_prediction(
     feature_names: list,
     top_n: int = 6,
 ) -> list:
-    """
-    Return top-N SHAP-based reasons for a prediction.
-    Returns list of dicts: {feature, value, impact, direction}
-    """
+    
     try:
         shap_vals = explainer.shap_values(input_vec)
         # For binary classification, shap_values is list[2] or array
@@ -278,7 +266,7 @@ def explain_prediction(
         return [{"feature": "model", "value": 0, "impact": 0, "direction": "explanation unavailable"}]
 
 
-# ─── Save / Load ──────────────────────────────────────────────────────────────
+# save 
 def save_artifacts(
     model,
     scaler,
