@@ -1,0 +1,13 @@
+{
+  "threshold": 0.2,
+  "metrics": {
+    "accuracy": 0.9959016393442623,
+    "f1": 0.9924812030075187,
+    "precision": 0.9850746268656716,
+    "recall": 1.0,
+    "roc_auc": 1.0,
+    "avg_precision": 1.0,
+    "threshold": 0.2
+  },
+  "n_features": 41
+}
