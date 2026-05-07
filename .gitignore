@@ -1,0 +1,33 @@
+# Python virtual environment
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ML models (VERY IMPORTANT - usually too large for GitHub)
+backend/models/
+models/
+*.joblib
+
+# Environment variables
+.env
+
+# Node / React
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
