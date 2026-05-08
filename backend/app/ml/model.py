@@ -72,7 +72,6 @@ def build_xgboost(
         scale_pos_weight=scale_pos_weight,
         use_label_encoder=False,
         eval_metric="logloss",
-        early_stopping_rounds=20,
         random_state=random_state,
         n_jobs=-1,
         verbosity=0,
@@ -141,7 +140,6 @@ def train_model(
         xgb_model.fit(
             X_train, y_train,
             eval_set=[(X_val, y_val)],
-            early_stopping_rounds=20,
             verbose=False,
         )
         models["xgboost"] = xgb_model
@@ -192,20 +190,51 @@ def evaluate_model(
     feature_names: Optional[list] = None,
 ) -> Dict[str, Any]:
     
-    proba = model.predict_proba(X_test)[:, 1]
+    raw_proba = model.predict_proba(X_test)
+    if raw_proba.shape[1] == 1:
+        if hasattr(model, "classes_") and len(model.classes_) == 1:
+            if model.classes_[0] == 1:
+                proba = np.ones(raw_proba.shape[0], dtype=float)
+            else:
+                proba = np.zeros(raw_proba.shape[0], dtype=float)
+        else:
+            proba = raw_proba[:, 0]
+    else:
+        if hasattr(model, "classes_"):
+            classes = list(model.classes_)
+            pos_index = classes.index(1) if 1 in classes else 0
+            proba = raw_proba[:, pos_index]
+        else:
+            proba = raw_proba[:, 1]
+
     preds = (proba >= threshold).astype(int)
+    unique_labels = np.unique(y_test)
+
+    roc_auc = None
+    avg_precision = None
+    if len(unique_labels) > 1:
+        roc_auc = float(roc_auc_score(y_test, proba))
+        avg_precision = float(average_precision_score(y_test, proba))
+    else:
+        roc_auc = float("nan")
+        avg_precision = float("nan")
 
     metrics = {
         "accuracy":         float(accuracy_score(y_test, preds)),
         "f1":               float(f1_score(y_test, preds, zero_division=0)),
         "precision":        float(precision_score(y_test, preds, zero_division=0)),
         "recall":           float(recall_score(y_test, preds, zero_division=0)),
-        "roc_auc":          float(roc_auc_score(y_test, proba)),
-        "avg_precision":    float(average_precision_score(y_test, proba)),
+        "roc_auc":          roc_auc,
+        "avg_precision":    avg_precision,
         "threshold":        threshold,
-        "confusion_matrix": confusion_matrix(y_test, preds).tolist(),
+        "confusion_matrix": confusion_matrix(y_test, preds, labels=[0, 1]).tolist(),
         "classification_report": classification_report(
-            y_test, preds, target_names=["No Flood", "Flood"], output_dict=True
+            y_test,
+            preds,
+            labels=[0, 1],
+            target_names=["No Flood", "Flood"],
+            output_dict=True,
+            zero_division=0,
         ),
     }
 

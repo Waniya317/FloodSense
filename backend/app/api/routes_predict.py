@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel, Field, validator
 from typing import Optional
 import numpy as np
+import math
 import logging
 from dataclasses import asdict
 
@@ -15,6 +16,17 @@ from ..core.district_service import get_district, get_elevation_lookup
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def clean_nan(obj):
+    if isinstance(obj, dict):
+        return {k: clean_nan(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_nan(v) for v in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return 0.0
+    return obj
 
 
 # ── Request Schema ─────────────────────────────────────────────────────────────
@@ -354,7 +366,7 @@ async def predict(request: Request, body: PredictRequest):
 
     rec_dict = asdict(rec)
 
-    return {
+    response = {
         "status": "success",
         "demo_mode": model_service.demo_mode,
         "district": body.district,
@@ -380,3 +392,5 @@ async def predict(request: Request, body: PredictRequest):
         "district_info": district_meta,
         "model_metrics": model_service.metrics,
     }
+
+    return clean_nan(response)
