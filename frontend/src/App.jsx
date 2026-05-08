@@ -1,121 +1,366 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [formData, setFormData] = useState({
+    district: '',
+    precipitation: '',
+    temperature: '',
+    humidity: '',
+    wind_speed: '',
+    pressure: '',
+    soil_moisture: '',
+    month: new Date().getMonth() + 1,
+    is_monsoon: 0,
+  })
+
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const API_BASE = 'http://localhost:8000/api/v1'
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'month' || name === 'is_monsoon' ? parseInt(value) : value
+    }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setResult(null)
+
+    try {
+      if (!formData.district.trim()) {
+        throw new Error('District name is required')
+      }
+
+      const payload = {
+        district: formData.district.trim(),
+        precipitation: formData.precipitation ? parseFloat(formData.precipitation) : null,
+        temperature: formData.temperature ? parseFloat(formData.temperature) : null,
+        humidity: formData.humidity ? parseFloat(formData.humidity) : null,
+        wind_speed: formData.wind_speed ? parseFloat(formData.wind_speed) : null,
+        pressure: formData.pressure ? parseFloat(formData.pressure) : null,
+        soil_moisture: formData.soil_moisture ? parseFloat(formData.soil_moisture) : null,
+        month: formData.month,
+        is_monsoon: formData.is_monsoon,
+      }
+
+      const response = await fetch(`${API_BASE}/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.detail || 'Prediction failed')
+      }
+
+      const data = await response.json()
+      setResult(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getRiskLevel = (probability) => {
+    if (probability < 0.3) return { level: 'LOW', color: '#10b981', icon: '✓' }
+    if (probability < 0.6) return { level: 'MODERATE', color: '#f59e0b', icon: '⚠' }
+    return { level: 'HIGH', color: '#ef4444', icon: '⛔' }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-content">
+          <h1>🌊 FloodSense AI</h1>
+          <p>Advanced Flood Risk Prediction System</p>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
+      <main className="app-main">
+        <div className="grid-container">
+          {/* Form Section */}
+          <div className="form-section">
+            <h2>📊 Prediction Input</h2>
+            <form onSubmit={handleSubmit} className="prediction-form">
+              {/* District Input - Required */}
+              <div className="form-group required">
+                <label htmlFor="district">District Name</label>
+                <input
+                  type="text"
+                  id="district"
+                  name="district"
+                  value={formData.district}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Buner, Swat, Peshawar"
+                  required
+                />
+                <small>Enter the district name for prediction</small>
+              </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+              {/* Weather Parameters */}
+              <div className="form-divider">Weather Parameters</div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="precipitation">Precipitation (mm)</label>
+                  <input
+                    type="number"
+                    id="precipitation"
+                    name="precipitation"
+                    value={formData.precipitation}
+                    onChange={handleInputChange}
+                    placeholder="0-3000"
+                    min="0"
+                    max="3000"
+                    step="0.1"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="temperature">Temperature (°C)</label>
+                  <input
+                    type="number"
+                    id="temperature"
+                    name="temperature"
+                    value={formData.temperature}
+                    onChange={handleInputChange}
+                    placeholder="-20 to 60"
+                    min="-20"
+                    max="60"
+                    step="0.1"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="humidity">Humidity (%)</label>
+                  <input
+                    type="number"
+                    id="humidity"
+                    name="humidity"
+                    value={formData.humidity}
+                    onChange={handleInputChange}
+                    placeholder="0-100"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="wind_speed">Wind Speed (km/h)</label>
+                  <input
+                    type="number"
+                    id="wind_speed"
+                    name="wind_speed"
+                    value={formData.wind_speed}
+                    onChange={handleInputChange}
+                    placeholder="0-60"
+                    min="0"
+                    max="60"
+                    step="0.1"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="pressure">Pressure (Pa)</label>
+                  <input
+                    type="number"
+                    id="pressure"
+                    name="pressure"
+                    value={formData.pressure}
+                    onChange={handleInputChange}
+                    placeholder="80000-110000"
+                    min="80000"
+                    max="110000"
+                    step="1"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="soil_moisture">Soil Moisture (0-1)</label>
+                  <input
+                    type="number"
+                    id="soil_moisture"
+                    name="soil_moisture"
+                    value={formData.soil_moisture}
+                    onChange={handleInputChange}
+                    placeholder="0-1"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+
+              {/* Temporal Parameters */}
+              <div className="form-divider">Temporal Information</div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="month">Month</label>
+                  <select
+                    id="month"
+                    name="month"
+                    value={formData.month}
+                    onChange={handleInputChange}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="is_monsoon">Monsoon Season</label>
+                  <select
+                    id="is_monsoon"
+                    name="is_monsoon"
+                    value={formData.is_monsoon}
+                    onChange={handleInputChange}
+                  >
+                    <option value={0}>No</option>
+                    <option value={1}>Yes</option>
+                  </select>
+                </div>
+              </div>
+
+              {error && <div className="error-message">{error}</div>}
+
+              <button
+                type="submit"
+                className="submit-btn"
+                disabled={loading}
+              >
+                {loading ? '⏳ Predicting...' : '🔍 Predict Flood Risk'}
+              </button>
+            </form>
+          </div>
+
+          {/* Result Section */}
+          <div className="result-section">
+            {result ? (
+              <div className="result-card">
+                <h2>📈 Prediction Result</h2>
+
+                {/* Risk Level Display */}
+                <div className="risk-container">
+                  {(() => {
+                    const prob = result.prediction?.probability ?? 0
+                    const risk = getRiskLevel(prob)
+                    return (
+                      <div className="risk-display" style={{ borderColor: risk.color }}>
+                        <div className="risk-icon" style={{ color: risk.color }}>
+                          {risk.icon}
+                        </div>
+                        <div className="risk-info">
+                          <h3 style={{ color: risk.color }}>{result.prediction?.risk_level || risk.level} RISK</h3>
+                          <p className="risk-probability">
+                            {(prob * 100).toFixed(1)}% Probability
+                          </p>
+                          <div className="risk-bar">
+                            <div
+                              className="risk-fill"
+                              style={{
+                                width: `${prob * 100}%`,
+                                backgroundColor: risk.color,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                {/* District Info */}
+                {result.district_info && (
+                  <div className="info-card">
+                    <h4>📍 District Information</h4>
+                    <div className="info-grid">
+                      <div className="info-item">
+                        <span className="label">District:</span>
+                        <span className="value">{result.district_info.name || 'N/A'}</span>
+                      </div>
+                      <div className="info-item">
+                        <span className="label">Terrain:</span>
+                        <span className="value">{result.district_info.terrain_type || 'N/A'}</span>
+                      </div>
+                      <div className="info-item">
+                        <span className="label">Elevation:</span>
+                        <span className="value">{result.district_info.elevation || 'N/A'} m</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Feature Analysis */}
+                {result.explanations && result.explanations.length > 0 && (
+                  <div className="info-card">
+                    <h4>🎯 Top Contributing Factors</h4>
+                    <div className="features-list">
+                      {result.explanations.slice(0, 5).map((feat, idx) => (
+                        <div key={idx} className="feature-item">
+                          <span className="feature-name">{feat.label}</span>
+                          <span className="feature-impact">{feat.impact_pct}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recommendation */}
+                {result.recommendation && (
+                  <div className="recommendation-card">
+                    <h4>💡 Recommendation & Actions</h4>
+                    {typeof result.recommendation === 'object' ? (
+                      <>
+                        {result.recommendation.summary_en && (
+                          <p><strong>Summary:</strong> {result.recommendation.summary_en}</p>
+                        )}
+                        {result.recommendation.immediate_actions && (
+                          <p><strong>Immediate Actions:</strong> {result.recommendation.immediate_actions}</p>
+                        )}
+                        {result.recommendation.agency_notifications && (
+                          <p><strong>Agency Notifications:</strong> {result.recommendation.agency_notifications}</p>
+                        )}
+                        {result.recommendation.preparation_timeline && (
+                          <p><strong>Preparation Timeline:</strong> {result.recommendation.preparation_timeline}</p>
+                        )}
+                        {result.recommendation.evacuation_priority && (
+                          <p><strong>Evacuation Priority:</strong> {result.recommendation.evacuation_priority}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p>{result.recommendation}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">📊</div>
+                <h3>No Prediction Yet</h3>
+                <p>Fill in the form and click "Predict Flood Risk" to see results</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      <footer className="app-footer">
+        <p>FloodSense AI • Advanced Flood Early Warning System</p>
+      </footer>
+    </div>
   )
 }
 
