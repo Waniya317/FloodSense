@@ -43,8 +43,13 @@ class ModelService:
 
             with open(MODEL_DIR / "metadata.json") as f:
                 meta = json.load(f)
-                self.threshold = max(meta.get("threshold", 0.50), 0.05)
+                trained_threshold = float(meta.get("threshold", 0.50))
+                self.threshold = float(min(max(trained_threshold, 0.50), 0.95))
                 self.metrics = meta.get("metrics", {})
+                if trained_threshold < 0.50:
+                    logger.info(
+                        f"Loaded trained threshold {trained_threshold:.3f}, using production threshold {self.threshold:.3f}"
+                    )
 
             self.demo_mode = False
             logger.info(
@@ -84,12 +89,11 @@ class ModelService:
         if self.demo_mode:
             return self._demo_predict(feature_vector)
 
-        raw_proba = float(self.model.predict_proba(feature_vector)[0, 1])
+        proba = float(self.model.predict_proba(feature_vector)[0, 1])
         if visible_surface_water == 1:
-            raw_proba += 0.25
-        raw_proba = max(0.0, min(raw_proba, 1.0))
+            proba += 0.25
+        proba = max(0.0, min(proba, 1.0))
 
-        proba = self._calibrate_probability(raw_proba)
         prediction = int(proba >= self.threshold)
         confidence_band = self._confidence_band(proba)
 

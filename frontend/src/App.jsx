@@ -72,9 +72,10 @@ function App() {
   }
 
   const getRiskLevel = (probability) => {
-    if (probability < 0.3) return { level: 'LOW', color: '#10b981', icon: '✓' }
-    if (probability < 0.6) return { level: 'MODERATE', color: '#f59e0b', icon: '⚠' }
-    return { level: 'HIGH', color: '#ef4444', icon: '⛔' }
+    if (probability < 0.25) return { level: 'LOW', color: '#10b981', icon: '✓' }
+    if (probability <= 0.50) return { level: 'MEDIUM', color: '#f59e0b', icon: '⚠' }
+    if (probability <= 0.75) return { level: 'HIGH', color: '#ef4444', icon: '⛔' }
+    return { level: 'CRITICAL', color: '#7c3aed', icon: '‼' }
   }
 
   return (

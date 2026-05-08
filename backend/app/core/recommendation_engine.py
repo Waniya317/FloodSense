@@ -114,9 +114,9 @@ class Recommendation:
 def probability_to_risk(prob: float) -> str:
     if prob < 0.25:
         return "Low"
-    elif prob < 0.50:
+    elif prob <= 0.50:
         return "Medium"
-    elif prob < 0.75:
+    elif prob <= 0.75:
         return "High"
     return "Critical"
 
