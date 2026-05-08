@@ -258,12 +258,14 @@ def _override_probability_by_input(req: PredictRequest, probability: float) -> f
     if severity >= 0.70:
         return max(probability, 0.85)
     if severity >= 0.60:
-        return max(probability, 0.70)
+        return max(probability, 0.75)
+    if severity >= 0.55:
+        return max(probability, 0.75)
     if severity >= 0.50:
         return max(probability, 0.60)
-    if severity >= 0.40:
-        return max(probability, 0.45)
-    if severity >= 0.25:
+    if severity >= 0.35:
+        return max(probability, 0.50)
+    if severity >= 0.20:
         return max(probability, 0.25)
     return probability
 
