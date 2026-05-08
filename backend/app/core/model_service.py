@@ -91,8 +91,12 @@ class ModelService:
 
         proba = float(self.model.predict_proba(feature_vector)[0, 1])
         if visible_surface_water == 1:
-            proba += 0.25
+            proba += 0.55  # Strong boost for visible surface water
         proba = max(0.0, min(proba, 1.0))
+
+        # Reduce baseline probability only if no visible surface water
+        if visible_surface_water == 0:
+            proba = max(0.0, proba - 0.23)
 
         prediction = int(proba >= self.threshold)
         confidence_band = self._confidence_band(proba)
