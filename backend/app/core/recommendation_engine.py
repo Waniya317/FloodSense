@@ -112,9 +112,12 @@ class Recommendation:
 
 
 def probability_to_risk(prob: float) -> str:
-    for level, (lo, hi) in RISK_LEVELS.items():
-        if lo <= prob < hi:
-            return level
+    if prob < 0.25:
+        return "Low"
+    elif prob < 0.50:
+        return "Medium"
+    elif prob < 0.75:
+        return "High"
     return "Critical"
 
 

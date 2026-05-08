@@ -44,9 +44,12 @@ RISK_URDU = {
 
 def probability_to_risk(prob: float) -> str:
     """Convert flood probability to risk level string."""
-    for level, (lo, hi) in RISK_THRESHOLDS.items():
-        if lo <= prob < hi:
-            return level
+    if prob < 0.25:
+        return "Low"
+    elif prob < 0.50:
+        return "Medium"
+    elif prob < 0.75:
+        return "High"
     return "Critical"
 
 

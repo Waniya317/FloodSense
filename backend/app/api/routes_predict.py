@@ -221,32 +221,36 @@ def _input_severity_score(req: PredictRequest) -> float:
     score = 0.0
 
     if req.precipitation is not None:
-        score += min(req.precipitation / 220.0, 1.0) * 0.28
+        score += min(req.precipitation / 220.0, 1.0) * 0.42
     if req.humidity is not None:
-        score += min(req.humidity / 100.0, 1.0) * 0.18
+        score += min(req.humidity / 100.0, 1.0) * 0.19
     if req.soil_moisture is not None:
-        score += min(req.soil_moisture / 1.0, 1.0) * 0.18
+        score += min(req.soil_moisture / 1.0, 1.0) * 0.19
     if req.wind_speed is not None:
-        score += min(req.wind_speed / 40.0, 1.0) * 0.16
+        score += min(req.wind_speed / 40.0, 1.0) * 0.10
     if req.water_area_km2 is not None:
-        score += min(req.water_area_km2 / 50.0, 1.0) * 0.08
+        score += min(req.water_area_km2 / 50.0, 1.0) * 0.05
     if req.is_monsoon == 1:
-        score += 0.06
+        score += 0.05
     if req.month in (6, 7, 8, 9):
-        score += 0.06
+        score += 0.05
 
     return min(score, 1.0)
 
 
 def _override_probability_by_input(req: PredictRequest, probability: float) -> float:
-    """Use strong input signals to prevent extreme conditions from staying in Low."""
+    """Use strong input signals to align final probability with extreme flood conditions."""
     severity = _input_severity_score(req)
     if severity >= 0.80:
-        return max(probability, 0.80)
+        return max(probability, 0.95)
+    if severity >= 0.70:
+        return max(probability, 0.85)
     if severity >= 0.60:
+        return max(probability, 0.70)
+    if severity >= 0.50:
         return max(probability, 0.60)
     if severity >= 0.40:
-        return max(probability, 0.40)
+        return max(probability, 0.45)
     if severity >= 0.25:
         return max(probability, 0.25)
     return probability

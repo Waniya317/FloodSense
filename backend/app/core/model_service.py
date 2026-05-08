@@ -43,7 +43,7 @@ class ModelService:
 
             with open(MODEL_DIR / "metadata.json") as f:
                 meta = json.load(f)
-                self.threshold = min(meta.get("threshold", 0.50), 0.05)
+                self.threshold = max(meta.get("threshold", 0.50), 0.05)
                 self.metrics = meta.get("metrics", {})
 
             self.demo_mode = False
