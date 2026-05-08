@@ -43,6 +43,7 @@ class PredictRequest(BaseModel):
     soil_moisture: Optional[float] = Field(None, ge=0, le=1, example=0.72)
     evaporation: Optional[float] = Field(None, ge=0, le=50, example=4.2)
     water_area_km2: Optional[float] = Field(None, ge=0, example=12.3)
+    visible_surface_water: Optional[int] = Field(None, ge=0, le=1, example=1)
     water_area_pct_change: Optional[float] = Field(None, ge=-500, le=500, example=45.2)
 
     # Rolling features
@@ -73,6 +74,7 @@ class PredictRequest(BaseModel):
                 "soil_moisture": 0.72,
                 "month": 8,
                 "is_monsoon": 1,
+                "visible_surface_water": 1,
             }
         }
 
@@ -115,7 +117,12 @@ def build_feature_vector(req: PredictRequest, feature_names: list, elevation_loo
         "pressure": req.pressure if req.pressure is not None else 100000.0,
         "soil_moisture": req.soil_moisture if req.soil_moisture is not None else 0.4,
         "temperature": req.temperature if req.temperature is not None else 25.0,
-        "water_area_km2": req.water_area_km2 if req.water_area_km2 is not None else 5.0,
+        "water_area_km2": (
+            req.water_area_km2
+            if req.water_area_km2 is not None
+            else (req.visible_surface_water if req.visible_surface_water is not None else 5.0)
+        ),
+        "visible_surface_water": req.visible_surface_water if req.visible_surface_water is not None else 0.0,
         "wind_speed": req.wind_speed if req.wind_speed is not None else 8.0,
         "humidity": req.humidity if req.humidity is not None else 60.0,
         "precip_3day_avg": req.precip_3day_avg if req.precip_3day_avg is not None else (req.precipitation or 0.0),
@@ -196,6 +203,7 @@ FEATURE_LABELS = {
     "precip_7day_avg": "7-Day Avg Rainfall",
     "precip_3day_avg": "3-Day Avg Rainfall",
     "soil_moisture": "Soil Moisture",
+    "visible_surface_water": "Visible Surface Water",
     "water_area_pct_change": "Water Area Change",
     "water_area_change": "Water Area Change (km²)",
     "elevation": "Elevation",
@@ -217,6 +225,7 @@ FEATURE_LABELS_UR = {
     "precip_7day_avg": "7 دن کی اوسط بارش",
     "precip_3day_avg": "3 دن کی اوسط بارش",
     "soil_moisture": "مٹی کی نمی",
+    "visible_surface_water": "ظاہر سطحی پانی",
     "water_area_pct_change": "پانی کی سطح میں تبدیلی",
     "elevation": "بلندی",
     "humidity": "نمی",
@@ -334,7 +343,8 @@ async def predict(request: Request, body: PredictRequest):
         scaled_vec = raw_vec
 
     # Predict
-    result = model_service.predict(scaled_vec)
+    visible_water_flag = body.visible_surface_water if body.visible_surface_water is not None else 0
+    result = model_service.predict(scaled_vec, visible_surface_water=visible_water_flag)
     result["probability"] = _override_probability_by_input(body, result["probability"])
     result["prediction"] = int(result["probability"] >= result["threshold"])
     result["confidence_band"] = model_service._confidence_band(result["probability"])

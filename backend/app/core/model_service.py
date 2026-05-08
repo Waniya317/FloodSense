@@ -76,7 +76,7 @@ class ModelService:
         logger.info("Demo mode ready with synthetic prediction engine")
 
     # ── Prediction ────────────────────────────────────────────────────────────
-    def predict(self, feature_vector: np.ndarray) -> dict:
+    def predict(self, feature_vector: np.ndarray, visible_surface_water: int = 0) -> dict:
         """
         Run inference. Returns probability, risk level, and confidence band.
         feature_vector: shape (1, n_features), already preprocessed & scaled.
@@ -85,6 +85,10 @@ class ModelService:
             return self._demo_predict(feature_vector)
 
         raw_proba = float(self.model.predict_proba(feature_vector)[0, 1])
+        if visible_surface_water == 1:
+            raw_proba += 0.25
+        raw_proba = max(0.0, min(raw_proba, 1.0))
+
         proba = self._calibrate_probability(raw_proba)
         prediction = int(proba >= self.threshold)
         confidence_band = self._confidence_band(proba)
