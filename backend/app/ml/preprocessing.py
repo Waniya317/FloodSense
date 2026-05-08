@@ -99,6 +99,54 @@ def flag_anomalies(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def impute_rainfall_by_proximity(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Automatic proximity-based rainfall imputation.
+    For missing precipitation values, estimates from nearest 2 districts using lat/lon distance.
+    """
+    df = df.copy()
+    
+    # Skip if no lat/lon or district info
+    if "latitude" not in df.columns or "longitude" not in df.columns or "district" not in df.columns:
+        return df
+    
+    missing_rows = df[df["precipitation"].isna()]
+    if len(missing_rows) == 0:
+        return df
+    
+    for idx, row in missing_rows.iterrows():
+        target_lat = row["latitude"]
+        target_lon = row["longitude"]
+        target_district = row["district"]
+
+        # Exclude same district + missing precipitation rows
+        candidates = df[
+            (df["district"] != target_district)
+            & (~df["precipitation"].isna())
+        ].copy()
+        
+        if len(candidates) == 0:
+            # No candidates from other districts, skip
+            continue
+
+        # Calculate distance
+        candidates["distance"] = np.sqrt(
+            (candidates["latitude"] - target_lat) ** 2
+            + (candidates["longitude"] - target_lon) ** 2
+        )
+
+        # Get 2 nearest districts (or fewer if not enough candidates)
+        nearest = candidates.nsmallest(min(2, len(candidates)), "distance")
+
+        if len(nearest) > 0:
+            # Average rainfall from nearest neighbors
+            estimated_rainfall = nearest["precipitation"].mean()
+            df.at[idx, "precipitation"] = estimated_rainfall
+    
+    logger.info(f"Imputed {len(missing_rows)} precipitation values using proximity method")
+    return df
+
+
 def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     """Impute NaN precipitation and other missing numerics."""
     df = df.copy()
