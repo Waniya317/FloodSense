@@ -13,12 +13,17 @@ function App() {
     month: new Date().getMonth() + 1,
     is_monsoon: 0,
   })
-
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
   const API_BASE = 'http://localhost:8000/api/v1'
+  
+  // Valid district names from the dataset
+  const VALID_DISTRICTS = [
+    'buner', 'swat', 'nowshera', 'charsadda', 'peshawar', 'mardan',
+    'dera ismail khan', 'dera ghazi khan', 'rajanpur', 'muzaffargarh',
+    'jacobabad', 'larkana', 'sukkur', 'abbottabad', 'mansehra'
+  ]
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -33,10 +38,13 @@ function App() {
     setLoading(true)
     setError('')
     setResult(null)
-
     try {
       if (!formData.district.trim()) {
-        throw new Error('District name is required')
+        throw new Error('Please select a district')
+      }
+
+      if (!VALID_DISTRICTS.includes(formData.district.toLowerCase())) {
+        throw new Error('Invalid district selected')
       }
 
       const payload = {
@@ -72,20 +80,58 @@ function App() {
   }
 
   const getRiskLevel = (probability) => {
-    if (probability < 0.25) return { level: 'LOW', color: '#10b981', icon: '✓' }
-    if (probability <= 0.50) return { level: 'MEDIUM', color: '#f59e0b', icon: '⚠' }
-    if (probability <= 0.75) return { level: 'HIGH', color: '#ef4444', icon: '⛔' }
-    return { level: 'CRITICAL', color: '#7c3aed', icon: '‼' }
+    if (probability < 0.25) return { level: 'LOW', urdu: 'کم', color: '#10b981', icon: '✓' }
+    if (probability < 0.50) return { level: 'MEDIUM', urdu: 'متوسط', color: '#f59e0b', icon: '⚠' }
+    if (probability < 0.75) return { level: 'HIGH', urdu: 'زیادہ', color: '#ef4444', icon: '⛔' }
+    return { level: 'CRITICAL', urdu: 'انتہائی', color: '#7c3aed', icon: '‼' }
   }
+
+  // Check if alert mode should be active
+  const isAlertMode = result && (result.prediction?.risk_level === 'High' || result.prediction?.risk_level === 'Critical')
 
   return (
     <div className="app-container">
+      {/* Alert Mode Banner - Only shows for High/Critical risk */}
+      {isAlertMode && (
+        <div className="alert-banner">
+          <div className="alert-content">
+            <div className="alert-icon">🚨</div>
+            <div className="alert-text">
+              <h3>RIVER ALERT INCOMING</h3>
+              <h4 style={{ fontSize: '1rem', margin: '0.25rem 0', fontWeight: '600', color: '#fff' }}>
+                دریا میں سیلاب کا خطرہ
+              </h4>
+              <p className="alert-action">
+                {result.recommendation?.immediate_actions?.[0] ||
+                  result.recommendation?.summary_en ||
+                  "Immediate action required - contact PDMA"}
+              </p>
+            </div>
+            <div className="alert-district">
+              <strong>{result.district?.toUpperCase()}</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="app-header">
         <div className="header-content">
           <h1>🌊 FloodSense AI</h1>
           <p>Advanced Flood Risk Prediction System</p>
         </div>
       </header>
+
+      {/* Data Estimation Info Box */}
+      <div className="info-box">
+        <div className="info-content">
+          <p className="info-text-en">
+            <strong>Note:</strong> Missing rainfall data was estimated using geographically nearest districts based on latitude and longitude coordinates to ensure accurate and location-aware flood predictions.
+          </p>
+          <p className="info-text-ur">
+            <strong>نوٹ:</strong> بارش کا غائب ڈیٹا عرض البلد اور طول البلد کی بنیاد پر جغرافیائی طور پر قریبی اضلاع سے اندازہ لگا کر مکمل کیا گیا تاکہ درست اور مقام سے متعلق سیلاب کی پیشگوئی ممکن ہو سکے۔
+          </p>
+        </div>
+      </div>
 
       <main className="app-main">
         <div className="grid-container">
@@ -96,16 +142,21 @@ function App() {
               {/* District Input - Required */}
               <div className="form-group required">
                 <label htmlFor="district">District Name</label>
-                <input
-                  type="text"
+                <select
                   id="district"
                   name="district"
                   value={formData.district}
                   onChange={handleInputChange}
-                  placeholder="e.g., Buner, Swat, Peshawar"
                   required
-                />
-                <small>Enter the district name for prediction</small>
+                >
+                  <option value="">Select a district...</option>
+                  {VALID_DISTRICTS.map(district => (
+                    <option key={district} value={district}>
+                      {district.charAt(0).toUpperCase() + district.slice(1).replace(' ', ' ')}
+                    </option>
+                  ))}
+                </select>
+                <small>Select from the list of supported districts</small>
               </div>
 
               {/* Weather Parameters */}
@@ -263,6 +314,9 @@ function App() {
                         </div>
                         <div className="risk-info">
                           <h3 style={{ color: risk.color }}>{result.prediction?.risk_level || risk.level} RISK</h3>
+                          <h4 style={{ color: risk.color, fontSize: '1.1rem', margin: '0.25rem 0', fontWeight: '600' }}>
+                            {result.prediction?.risk_level_urdu || risk.urdu} خطرہ
+                          </h4>
                           <p className="risk-probability">
                             {(prob * 100).toFixed(1)}% Probability
                           </p>
