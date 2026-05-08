@@ -8,8 +8,8 @@ function App() {
     temperature: '',
     humidity: '',
     wind_speed: '',
-    pressure: '',
     soil_moisture: '',
+    water_area_km2: '0',
     month: new Date().getMonth() + 1,
     is_monsoon: 0,
   })
@@ -24,7 +24,7 @@ function App() {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'month' || name === 'is_monsoon' ? parseInt(value) : value
+      [name]: (name === 'month' || name === 'is_monsoon' || name === 'water_area_km2') ? parseFloat(value) : value
     }))
   }
 
@@ -45,8 +45,8 @@ function App() {
         temperature: formData.temperature ? parseFloat(formData.temperature) : null,
         humidity: formData.humidity ? parseFloat(formData.humidity) : null,
         wind_speed: formData.wind_speed ? parseFloat(formData.wind_speed) : null,
-        pressure: formData.pressure ? parseFloat(formData.pressure) : null,
         soil_moisture: formData.soil_moisture ? parseFloat(formData.soil_moisture) : null,
+        water_area_km2: formData.water_area_km2 ? parseFloat(formData.water_area_km2) : null,
         month: formData.month,
         is_monsoon: formData.is_monsoon,
       }
@@ -174,20 +174,6 @@ function App() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="pressure">Pressure (Pa)</label>
-                  <input
-                    type="number"
-                    id="pressure"
-                    name="pressure"
-                    value={formData.pressure}
-                    onChange={handleInputChange}
-                    placeholder="80000-110000"
-                    min="80000"
-                    max="110000"
-                    step="1"
-                  />
-                </div>
-                <div className="form-group">
                   <label htmlFor="soil_moisture">Soil Moisture (0-1)</label>
                   <input
                     type="number"
@@ -200,6 +186,18 @@ function App() {
                     max="1"
                     step="0.01"
                   />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="water_area_km2">Visible Surface Water</label>
+                  <select
+                    id="water_area_km2"
+                    name="water_area_km2"
+                    value={formData.water_area_km2}
+                    onChange={handleInputChange}
+                  >
+                    <option value="0">No</option>
+                    <option value="12.3">Yes</option>
+                  </select>
                 </div>
               </div>
 
@@ -299,21 +297,6 @@ function App() {
                         <span className="label">Elevation:</span>
                         <span className="value">{result.district_info.elevation || 'N/A'} m</span>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Feature Analysis */}
-                {result.explanations && result.explanations.length > 0 && (
-                  <div className="info-card">
-                    <h4>🎯 Top Contributing Factors</h4>
-                    <div className="features-list">
-                      {result.explanations.slice(0, 5).map((feat, idx) => (
-                        <div key={idx} className="feature-item">
-                          <span className="feature-name">{feat.label}</span>
-                          <span className="feature-impact">{feat.impact_pct}%</span>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 )}
