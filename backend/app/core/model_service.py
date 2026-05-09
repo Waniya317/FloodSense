@@ -1,9 +1,4 @@
-"""
-FloodSense AI — Model Service
-Loads trained artifacts (model, scaler, feature_names) from disk.
-Falls back to a deterministic demo mode if artifacts are absent
-so the app never crashes during a hackathon demo.
-"""
+
 
 import json
 import logging
@@ -35,8 +30,8 @@ class ModelService:
         try:
             import joblib
 
-            self.model = joblib.load(MODEL_DIR / "model.joblib")
-            self.scaler = joblib.load(MODEL_DIR / "scaler.joblib")
+            self.model = joblib.load(MODEL_DIR / "model.pkl")
+            self.scaler = joblib.load(MODEL_DIR / "scaler.pkl")
 
             with open(MODEL_DIR / "feature_names.json") as f:
                 self.feature_names = json.load(f)
