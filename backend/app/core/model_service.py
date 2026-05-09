@@ -30,8 +30,8 @@ class ModelService:
         try:
             import joblib
 
-            self.model = joblib.load(MODEL_DIR / "model.pkl")
-            self.scaler = joblib.load(MODEL_DIR / "scaler.pkl")
+            self.model = joblib.load(MODEL_DIR / "model.joblib")
+            self.scaler = joblib.load(MODEL_DIR / "scaler.joblib")
 
             with open(MODEL_DIR / "feature_names.json") as f:
                 self.feature_names = json.load(f)
