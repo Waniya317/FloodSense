@@ -18,7 +18,8 @@ function App() {
   const [error, setError] = useState('')
  // const API_BASE = 'http://localhost:8000/api/v1'
  // const API_BASE = import.meta.env.VITE_API_URL
-  const API_BASE = import.meta.env.VITE_URL
+  //const API_BASE = import.meta.env.VITE_URL
+  const API_BASE = import.meta.env.VITE_URL + "/api/v1"
   
   // Valid district names from the dataset - comprehensive coverage of Pakistan
   const VALID_DISTRICTS = [
