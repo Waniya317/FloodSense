@@ -1,7 +1,3 @@
-"""
-FloodSense AI — Prediction API Routes
-POST /api/v1/predict — Main flood risk prediction endpoint
-"""
 
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel, Field, validator
@@ -146,18 +142,19 @@ def build_feature_vector(req: PredictRequest, feature_names: list, elevation_loo
         terrain_type = district_info.terrain_type or terrain_type
 
     # Amplify core flood signals so the model responds more strongly to extreme weather.
-    raw["precipitation"] = min(raw["precipitation"] * 2.5, 3000.0)
+    raw["precipitation"] = min(raw["precipitation"] * 1.2, 3000.0)
     raw["wind_speed"] = min(raw["wind_speed"] * 2.0, 60.0)
     raw["soil_moisture"] = min(raw["soil_moisture"] * 2.0, 1.0)
     raw["humidity"] = min(raw["humidity"] * 1.2, 100.0)
     raw["water_area_km2"] = min(raw["water_area_km2"] * 1.5, 1000.0)
+    
 
     # Derive engineered features like training pipeline.
     raw["water_area_pct_change"] = float(np.clip(raw["water_area_pct_change"], -500.0, 500.0))
     raw["flood_stress_index"] = (
-        raw["precip_7day_avg"] * 0.4
-        + raw["soil_moisture"] * 0.3
-        + max(0.0, raw["water_area_pct_change"]) / 500.0 * 0.3
+        raw["precip_7day_avg"] * 0.25
+        + raw["soil_moisture"] * 0.35
+        + max(0.0, raw["water_area_pct_change"]) / 500.0 * 0.4
     )
     raw["sat_proxy"] = raw["soil_moisture"] * raw["precip_3day_avg"]
     raw["monsoon_precip"] = raw["is_monsoon"] * raw["precipitation"]
@@ -242,11 +239,11 @@ def _input_severity_score(req: PredictRequest) -> float:
     score = 0.0
 
     if req.precipitation is not None:
-        score += min(req.precipitation / 220.0, 1.0) * 0.42
+        score += min(req.precipitation / 220.0, 1.0) * 0.2
     if req.humidity is not None:
-        score += min(req.humidity / 100.0, 1.0) * 0.19
+        score += min(req.humidity / 100.0, 1.0) * 0.2
     if req.soil_moisture is not None:
-        score += min(req.soil_moisture / 1.0, 1.0) * 0.19
+        score += min(req.soil_moisture / 1.0, 1.0) * 0.3
     if req.wind_speed is not None:
         score += min(req.wind_speed / 40.0, 1.0) * 0.10
     if req.water_area_km2 is not None:
@@ -255,7 +252,8 @@ def _input_severity_score(req: PredictRequest) -> float:
         score += 0.05
     if req.month in (6, 7, 8, 9):
         score += 0.05
-
+    if req.visible_surface_water == 1:
+        score += 0.15 
     return min(score, 1.0)
 
 
